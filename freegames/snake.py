@@ -48,19 +48,21 @@ def validMove(nextMove):
 def moveHead(head):
     global aim, recordedMoves
 
-    nextMove = aim;
+    nextMove = aim
     if len(recordedMoves) > 0:
         nextMove = recordedMoves.pop(0)
-        
-    if validMove(nextMove):
-        head.move(nextMove)
-        aim = nextMove
-        wrap(head)
-        if didCollide(head):
-            return True
-        else:
-            snake.append(head)
-            head = copy.copy(head)
+
+    if not validMove(nextMove):
+        nextMove = aim
+
+    head.move(nextMove)
+    aim = nextMove
+    wrap(head)
+    if didCollide(head):
+        return True
+    else:
+        snake.append(head)
+        head = copy.copy(head)
 
 def move():
     global timerDelay, growCount
