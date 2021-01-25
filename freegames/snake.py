@@ -8,7 +8,7 @@ Exercises
 4. Change the snake to respond to arrow keys.
 
 """
-
+import copy
 from turtle import *
 from random import randrange
 from freegames import square, vector
@@ -16,48 +16,62 @@ from freegames import square, vector
 food = vector(0, 0)
 snake = [vector(0, 100)]
 aim = vector(0, -10)
+recordedMoves = []
 
 growCount = 0;
 timerDelay = 200
 
 def change(x, y):
-    "Change snake direction."
-    if ((x > 0 and aim.x < 0) or
-        (x < 0 and aim.x > 0) or
-        (y > 0 and aim.y < 0) or
-        (y < 0 and aim.y > 0)):
-        return
-    aim.x = x
-    aim.y = y
+    if len(recordedMoves) < 2:
+        recordedMoves.append(vector(x, y))
 
-def inside(head):
-    "Return True if head inside boundaries."
-    return -200 < head.x < 190 and -200 < head.y < 190
+def wrap(head):
+    if head.x >= 200:
+        head.x = -190
+    elif head.x <= -200:
+        head.x = 190
+
+    if head.y <= -200:
+        head.y = 190
+    elif head.y >= 200:
+        head.y = -190
+
+def didCollide(head):
+    return head in snake
+
+def validMove(nextMove):
+    return not ((nextMove.x > 0 and aim.x < 0) or
+            (nextMove.x < 0 and aim.x > 0) or
+            (nextMove.y > 0 and aim.y < 0) or
+            (nextMove.y < 0 and aim.y > 0))
+
+def moveHead(head):
+    global aim, recordedMoves
+
+    nextMove = aim;
+    if len(recordedMoves) > 0:
+        nextMove = recordedMoves.pop(0)
+        
+    if validMove(nextMove):
+        head.move(nextMove)
+        aim = nextMove
+        wrap(head)
+        if didCollide(head):
+            return True
+        else:
+            snake.append(head)
+            head = copy.copy(head)
 
 def move():
-    global timerDelay
-    global growCount
+    global timerDelay, growCount
     "Move snake forward one segment."
     head = snake[-1].copy()
-    head.move(aim)
+    collidedWithSelf = moveHead(head)
 
-    if not inside(head):
-        if head.x >= 200:
-            head.x = -190
-        elif head.x <= -200:
-            head.x = 190
-
-        if head.y <= -200:
-            head.y = 190
-        elif head.y >= 200:
-            head.y = -190
-
-    if head in snake:
+    if collidedWithSelf:
         square(head.x, head.y, 9, 'red')
         update()
         return
-
-    snake.append(head)
 
     if head == food:
         print('Snake:', len(snake))
