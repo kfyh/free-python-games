@@ -13,30 +13,32 @@ from random import randrange
 from freegames import square, vector
 
 food = vector(0, 0)
+
+# Define snake as a dictionary of information
 snake1 = {
     'body': [vector(0, 100)],
+    'nextAim': vector(0, 10), # Remember the keypress to process on next loop
     'aim': vector(0, 10),
-    'recordedMoves': [],
-    'growCount': 0,
     'colour': 'blue'
 }
 
 snake2 = {
     'body': [vector(0, -100)],
+    'nextAim': vector(0, -10),
     'aim': vector(0, -10),
-    'recordedMoves': [],
-    'growCount': 0,
-    'colour': 'yellow'
+    'colour': 'orange'
 }
 
-snakes = [snake1, snake2]
+snakes = [snake1, snake2] # Create a list of snakes
 
-timerDelay = 200
+timerDelay = 200 # time until the next loop
 
 def change(x, y, snake):
     """Record a direction change request."""
-    if len(snake['recordedMoves']) < 2:
-        snake['recordedMoves'].append(vector(x, y))
+    nextAim = vector(x,y)
+    if validMove(nextAim, snake): # Only set to new direction if it's a valid move
+        # Store until the update loop so we can validate multiple inputs during a frame
+        snake['nextAim'] = nextAim
 
 def wrap(head):
     """Wrap the head around the play area."""
@@ -59,14 +61,8 @@ def validMove(nextMove, snake):
 
 def moveHead(head, snake, occupiedSquares):
     """Move the head of the snake."""
-    nextMove = snake['aim'] # Set next move to current direction
-    if len(snake['recordedMoves']) > 0: # If a change is recorded, set next move to change of direction
-        changeMove = snake['recordedMoves'].pop(0)
-        if validMove(changeMove, snake): # Only set to new direction if it's a valid move
-            nextMove = changeMove
-
-    head.move(nextMove) # Move the head
-    snake['aim'] = nextMove # Set new head direction
+    snake['aim'] = snake['nextAim'] # Set next move to current direction
+    head.move(snake['aim']) # Move the head
     wrap(head) # Wrap the head position around the edge of the play area
 
     if head in occupiedSquares:
@@ -76,10 +72,11 @@ def moveHead(head, snake, occupiedSquares):
         return False
 
 def moveSnakes():
-    global timerDelay
     """Move the snakes and update game state"""
+    global timerDelay
+
     # Create list of squares snakes cannot run into
-    occupiedSquares = [];
+    occupiedSquares = []
     for snake in snakes:
         occupiedSquares += snake['body']
 
@@ -99,7 +96,6 @@ def moveSnakes():
 
         # Check if snake ate the food
         if head == food:
-            snake['growCount'] = 2 # If eaten the food, we will grow by 2 squares
             if timerDelay > 0: # Increase the speed of the game
                 timerDelay -= 5
             while True: # Place new food
@@ -107,20 +103,20 @@ def moveSnakes():
                 food.y = randrange(-15, 15) * 10
                 if food not in occupiedSquares: # Ensure food is not on an occupied square
                     break
-
-        if snake['growCount'] <= 0:
-            snake['body'].pop(0)
         else:
-            snake['growCount'] -= 1
-    return False
+            # Since we added the head we need to trim the tail
+            # So we don't keep growing
+            snake['body'].pop(0)
+
+    return False # Return False to say we didn't collide with anything
 
 def drawSnakes():
-    """Draw the snakes and fod onto the screen"""
+    """Draw the snakes and food onto the screen"""
     clear()
     for snake in snakes:
         for body in snake['body']:
             square(body.x, body.y, 9, snake['colour'])
-    
+
     square(food.x, food.y, 9, 'green')
     update()
 
@@ -128,15 +124,17 @@ def updateGame():
     """Update the game state."""
     global timerDelay
 
-    if moveSnakes():
-        return
+    collided = moveSnakes()
+    if collided:
+        return # End game if snakes collided
     drawSnakes()
 
-    ontimer(updateGame, timerDelay)
+    ontimer(updateGame, timerDelay) # Call this function again after the timerDelay
 
 setup(420, 420, 0, 0)
 hideturtle()
 tracer(False)
+
 listen()
 onkey(lambda: change(10, 0, snake1), 'Right')
 onkey(lambda: change(-10, 0, snake1), 'Left')
@@ -146,5 +144,6 @@ onkey(lambda: change(10, 0, snake2), 'd')
 onkey(lambda: change(-10, 0, snake2), 'a')
 onkey(lambda: change(0, 10, snake2), 'w')
 onkey(lambda: change(0, -10, snake2), 's')
+
 updateGame()
 done()
